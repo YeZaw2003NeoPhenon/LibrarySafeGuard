@@ -31,14 +31,16 @@ public class JWTAuthenticationFIlter extends OncePerRequestFilter{
 			throws ServletException, IOException {
 		
 	 String authHeader	= request.getHeader(HttpHeaders.AUTHORIZATION); 
-	 String token = null;
 	 String userName= null;
 	 
      
-	 if( authHeader != null && authHeader.startsWith("Bearer ")) {
-		 token = authHeader.substring(7); // get rid of "bearer " prefix
-		 
-	try {
+	 if( authHeader == null && !authHeader.startsWith("Bearer ")) {
+		 jwtConfig.getAuthHeader()
+		 return;
+	 }
+		 String token = authHeader.replace("Bearer " , "");
+		
+	  try {
 		userName = jwtService.extractUserNameFromToken(token);
 		
 		 if( userName != null && SecurityContextHolder.getContext().getAuthentication() == null ) {
@@ -52,17 +54,9 @@ public class JWTAuthenticationFIlter extends OncePerRequestFilter{
 				}
 			 }
 	}
-	catch(Exception e) {
-	       response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized: Token validation failed");
-           return;
+	catch(JwtException e) {
+	       response.sendError(String.format("Unauthorized: Token %s validation failed"+token));
+    }
+	  filterChain.doFilter(request, response);
 	}
-	 
-	}
-	 else {
-         response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized: Missing or invalid Authorization header");
-         return;
-	 }
-	 filterChain.doFilter(request, response);
-}
-
 }
